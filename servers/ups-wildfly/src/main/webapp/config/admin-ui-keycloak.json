@@ -2,6 +2,6 @@
     "realm" : "aerogear",
     "auth-server-url" : "/auth",
     "ssl-required" : "external",
-    "resource" : "unified-push-server-js",
+    "resource" : "atoms-js",
     "public-client" : true
 }

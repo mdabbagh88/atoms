@@ -23,7 +23,7 @@ Run:
 Now you need to modify `admin-ui/local-config.json` file and fill in `jbossweb` property properly:
 
     {
-        "home": "/home/sebastien/aerogear/aerogear-unified-push-server-admin-ui",
+        "home": "/home/sebastien/aerogear/aerogear-atoms-admin-ui",
         "jbossweb": "/home/sebastien/apps/jboss-as-7.1.1.Final/standalone/deployments/unifiedpush-server.war",
     };
     
