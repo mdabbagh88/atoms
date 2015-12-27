@@ -1,4 +1,9 @@
-# AeroGear Unified Push Server - Admin UI [![Build Status](https://travis-ci.org/aerogear/aerogear-unifiedpush-server-admin-ui.png)](https://travis-ci.org/aerogear/aerogear-unifiedpush-server-admin-ui)
+# ATOMS Server - Admin UI
+
+### Free icons usage
+#### Application icon
+* Made by - [Sarfraz Shoukat](a href="http://www.flaticon.com/authors/sarfraz-shoukat) 
+* Licensed by - [Creative Commons BY 3.0](http://creativecommons.org/licenses/by/3.0/) 
 
 ### Setting Up The Development Environment
 
