@@ -3,6 +3,7 @@ package org.jboss.aerogear.unifiedpush.service.file;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class DocumentDaoImpl implements DocumentDao {
 		Path directoryPath = getDocumentPath(message);
 
 		fileManager.save(Paths.get(directoryPath.toString(), getDocumentFileName(message)), message.getContent()
-				.getBytes());
+				.getBytes(StandardCharsets.UTF_8));
 	}
 
 	@Override
@@ -98,7 +99,8 @@ public class DocumentDaoImpl implements DocumentDao {
 		List<DocumentMessage> documents = new ArrayList<>(files.size());
 		DocumentMessage document;
 		for (File file : files) {
-			document = new DocumentMessage(new String(fileManager.read(file.toPath())), message);
+			document = new DocumentMessage(new String(fileManager.read(file.toPath()),
+					StandardCharsets.UTF_8), message);
 			document.setTimestamp(file.lastModified());
 			documents.add(document);
 		}
