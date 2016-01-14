@@ -8,7 +8,7 @@
 		<format>tar.gz</format>
 	</formats>
 
-	<includeBaseDirectory>true</includeBaseDirectory>
+	<includeBaseDirectory>false</includeBaseDirectory>
 
 	<dependencySets>
 

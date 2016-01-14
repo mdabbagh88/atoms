@@ -75,30 +75,31 @@ public class ClientInstallationServiceImpl implements ClientInstallationService 
 	private Configuration configuration;
     
 	@Override
-	public Installation associateInstallation(Installation installation, Variant currentVariant) {
-		
+	public Variant associateInstallation(Installation installation, Variant currentVariant) {
 		if (installation.getAlias() == null) {
-			return installation;
+			logger.warning("Unable to associate, installation alias is missing!");
+			return null;
 		}
 		
 		Alias alias = aliasDao.findByName(installation.getAlias());
 		
 		if (alias == null) {
-			return installation;
+			return null;
 		}
 		
 		PushApplication application = pushApplicationDao.findByPushApplicationID(alias.getPushApplicationID());
 		List<Variant> variants = application.getVariants();
+		
 		for (Variant variant : variants) {
 			// Match variant type according to previous variant.
 			if(variant.getType().equals(currentVariant.getType())){
 				installation.setVariant(variant);
-				break;
+				updateInstallation(installation);
+				return variant;
 			}
 		}
 		
-		updateInstallation(installation);
-		return installation;
+		return null;
 	}
 
 	@Override
@@ -257,6 +258,11 @@ public class ClientInstallationServiceImpl implements ClientInstallationService 
     @Override
     public Installation findInstallationForVariantByDeviceToken(String variantID, String deviceToken) {
         return installationDao.findInstallationForVariantByDeviceToken(variantID, deviceToken);
+    }
+    
+    @Override
+    public Installation findEnabledInstallationForVariantByDeviceToken(String variantID, String deviceToken) {
+        return installationDao.findEnabledInstallationForVariantByDeviceToken(variantID, deviceToken);
     }
     
     @Override

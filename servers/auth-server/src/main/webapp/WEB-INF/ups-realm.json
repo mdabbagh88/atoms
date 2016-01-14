@@ -62,23 +62,23 @@
     },
     "scopeMappings": [
         {
-            "client": "unified-push-server-js",
+            "client": "atoms-js",
             "roles": ["admin", "developer"]
         }
     ],
     "applications": [
         {
-            "name": "unified-push-server",
+            "name": "atoms",
             "enabled": true,
             "bearerOnly": true
         },
         {
-            "name": "unified-push-server-js",
+            "name": "atoms-js",
             "enabled": true,
             "publicClient": true,
-            "baseUrl": "/unifiedpush-server",
+            "baseUrl": "/atoms",
             "redirectUris": [
-                "/unifiedpush-server/*"
+                "/atoms/*"
             ]
         }
     ]

@@ -68,6 +68,7 @@
 	</repositories>
 
 	<build>
+		<finalName>unifiedpush-server</finalName>
 		<pluginManagement>
 			<plugins>
 				<plugin>
@@ -87,7 +88,6 @@
 				</excludes>
 			</resource>
 		</resources>
-		<finalName>unifiedpush-server</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
