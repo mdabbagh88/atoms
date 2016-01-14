@@ -8,19 +8,19 @@
 		<format>tar.gz</format>
 	</formats>
 
-	<includeBaseDirectory>true</includeBaseDirectory>
+	<includeBaseDirectory>false</includeBaseDirectory>
 
 	<dependencySets>
 
 		<!-- Create common lib's folder -->
 		<dependencySet>
-			<outputDirectory>/initdb/lib</outputDirectory>
+			<outputDirectory>/</outputDirectory>
 			<includes>
 				<include>org.jboss.aerogear.unifiedpush:unifiedpush-server-wildfly</include>
 				<include>org.jboss.aerogear.unifiedpush:unifiedpush-auth-server</include>
 				<include>org.jboss.aerogear.unifiedpush:unifiedpush-initdb</include>
 			</includes>
-			<useTransitiveFiltering>true</useTransitiveFiltering>
+			<useTransitiveFiltering>false</useTransitiveFiltering>
 			<fileMode>0755</fileMode>
 		</dependencySet>
 	</dependencySets>

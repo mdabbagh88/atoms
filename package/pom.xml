@@ -33,18 +33,21 @@
 		<dependency>
 			<groupId>org.jboss.aerogear.unifiedpush</groupId>
 			<artifactId>unifiedpush-server-wildfly</artifactId>
+			<type>war</type>
 			<version>${project.version}</version>
 		</dependency>
 
                 <dependency>
                         <groupId>org.jboss.aerogear.unifiedpush</groupId>
                         <artifactId>unifiedpush-auth-server</artifactId>
+			<type>war</type>
                         <version>${project.version}</version>
                 </dependency>
 
                 <dependency>
                         <groupId>org.jboss.aerogear.unifiedpush</groupId>
                         <artifactId>unifiedpush-initdb</artifactId>
+			<type>tar.gz</type>
                         <version>${project.version}</version>
                 </dependency>
 	</dependencies>
