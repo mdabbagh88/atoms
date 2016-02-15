@@ -1,5 +1,5 @@
-# ATOMS [![Build Status](https://travis-ci.org/atomsd/atoms.svg?branch=master)](https://travis-ci.org/atomsd/atoms)
-The _ATOMS_ is a free and open source mobile application server that allows sending push notifications to different (mobile) platforms and has support for:
+# Atoms [![Build Status](https://travis-ci.org/atomsd/atoms.svg?branch=master)](https://travis-ci.org/atomsd/atoms)
+The _Atoms_ is a free and open source mobile application server that allows sending push notifications to different (mobile) platforms and has support for:
 * [Apple’s APNs](http://developer.apple.com/library/mac/#documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/ApplePushService.html#//apple_ref/doc/uid/TP40008194-CH100-SW9)
 * [Google Cloud Messaging (GCM)](http://developer.android.com/google/gcm/index.html)
 * [Microsoft's Windows Push Notification service (WNS)](https://msdn.microsoft.com/en-us/library/windows/apps/hh913756.aspx)
@@ -7,8 +7,8 @@ The _ATOMS_ is a free and open source mobile application server that allows send
 * [Amazon Device Messaging (ADM)](https://developer.amazon.com/appsandservices/apis/engage/device-messaging/)
 * [Mozilla’s SimplePush](https://wiki.mozilla.org/WebAPI/SimplePush).
 
-_ATOMS_ releases additional functionality while maintaining _AeroGear_ API compatibility:
-* [Full-stack](http://dist.atomsd.org/atoms/packages/) rpm/deb installers across a variety of platforms (RHEL, Debian, Fedora, Ubuntu).
+_Atoms_ releases additional functionality while maintaining _AeroGear_ API compatibility:
+* [Full-stack](http://atomsd.org/downloads) rpm/deb installers across a variety of platforms (RHEL, Debian, Fedora, Ubuntu).
 * SSL Suuport, embeded NGINX, embeded postgresql.
 * Centralized configuration/managment. 
 * Code base registraion verification - [SMS/Email Verification process](http://atomsd.org/features/).
@@ -23,31 +23,24 @@ _ATOMS_ releases additional functionality while maintaining _AeroGear_ API compa
 | --------------- | ------------- |
 | License:        | Apache License, Version 2.0  |
 | Build:          | Maven  |
-| Documentation:  | https://aerogear.org/push/  |
-|                 | https://github.com/atomsd/omnibus-atoms/tree/master/doc  |
+| Documentation:  | http://atomsd.org/documentation/  |
 | Issue tracker:  | https://github.com/atomsd/atoms/issues  |
 
 ## Getting started
 
 For the on-premise version, execute the following steps to get going!
 
-* Download the [latest package (rpm/deb) files](http://dist.atomsd.org/atoms/packages/)
-* Or follow the steps on the [install page](http://atomsd.org/)
+* Download the [latest package (rpm/deb) files](http://atomsd.org/downloads)
+* Or follow the steps on the [install page](http://atomsd.org/documentation/)
 * Run ``sudo atoms-ctl reconfigure``
 * Start the server ``sudo atoms-ctl start``
 
 Now go to ``http://localhost/atoms`` and enjoy the ATOMS Server.
 __NOTE:__ the default user/password is ```admin```:```123```
 
-
-## Docker-Compose
-
-For your convenience, we do have an easy way of launch with our [Docker compose file](docker-compose)
-
 ## Documentation
 
-For more details about the current release, please consult [our documentation] (https://github.com/atomsd/omnibus-atoms/tree/master/doc) or visit [AeroGear documentation] 
-(https://aerogear.org/getstarted/guides/#push).
+For more details about the current release, please consult [our documentation] (http://atomsd.org/documentation/)
 
 #### Generate REST Documentation
 
