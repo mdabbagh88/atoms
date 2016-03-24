@@ -1,5 +1,5 @@
 --
--- H2 database query
+-- PGSQL database query
 --
 
 INSERT INTO push_application VALUES ('711c8b98-9c2c-4d94-abe7-ecff7145c015', NULL, 'admin', '1f73558f-d01b-48d7-9f6a-fc5d0ec6da51', 'DEFAULT', '7385c294-2003-4abf-83f6-29a27415326b');
