@@ -76,7 +76,7 @@ vars.put(&quot;base64AndroidHeaderValue&quot;,new String(androidUsernamePassword
           <stringProp name="HTTPSampler.response_timeout"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-          <stringProp name="HTTPSampler.path">/unifiedpush-server/rest/registry/device</stringProp>
+          <stringProp name="HTTPSampler.path">/atoms/rest/registry/device</stringProp>
           <stringProp name="HTTPSampler.method">POST</stringProp>
           <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
