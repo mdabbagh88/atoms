@@ -1,5 +1,5 @@
 {
-    "realm": "aerogear",
+    "realm": "atoms",
     "enabled": true,
     "accessTokenLifespan": 60,
     "accessCodeLifespan": 60,
