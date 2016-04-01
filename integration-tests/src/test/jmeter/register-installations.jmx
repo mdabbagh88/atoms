@@ -34,7 +34,7 @@
           </elementProp>
           <elementProp name="CONTEXT_ROOT" elementType="Argument">
             <stringProp name="Argument.name">CONTEXT_ROOT</stringProp>
-            <stringProp name="Argument.value">unifiedpush-server</stringProp>
+            <stringProp name="Argument.value">atoms</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
