@@ -61,15 +61,30 @@ public class PushApplicationEndpoint extends AbstractBaseEndpoint {
 
     @Inject
     private InstallationDao installationDao;
-    
+
     /**
-     * Create Push Application
+     * RESTful API for creating push application.
+     * The Endpoint is protected using keycloak <code>OAuth 2.0</code>.
      *
-     * @param pushApp   new {@link PushApplication}
+     * <pre>
+     * curl -u "variantID:secret"
+     *   -v -H "Accept: application/json" -H "Content-type: application/json"
+     *   -X POST
+     *   -d '{
+     *     "name" : "someApplicationName",
+     *     "description" : "someApplicationDescriptio",
+     *     "pushApplicationID" : "UUID",
+     *     "masterSecret" : "UUID"
+     *   }'
+     *   https://SERVER:PORT/context/rest/applications
+     * </pre>
+     *
+     * @param pushApp	new {@link PushApplication}
      * @return          created {@link PushApplication}
      *
-     * @statuscode 201 The PushApplication Variant created successfully
-     * @statuscode 400 The format of the client request was incorrect
+     * @statuscode 200 Successful storage of the application metadata
+     * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
+     * @statuscode 401 The request requires authentication
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)

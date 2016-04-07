@@ -63,30 +63,34 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	private NotificationRouter notificationRouter;
 
 	/**
-	 * Overwrites existing categories and properties of the push application
-	 * with the given data
+	 * Map aliases to push application.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).
 	 *
-	 * @param pushApplicationID
-	 *            id of {@linkplain PushApplication}
-	 * @param categoryData
-	 *            map from category name to its list of property names
+	 * @param pushApplicationID id of {@linkplain PushApplication}
+	 * @param aliases {@link List<String>} of aliases
+	 * @return Empty JSON {}
+	 *
+	 * @statuscode 200 Successful storage of the aliases list
+     * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
+     * @statuscode 401 The request requires authentication
+     * @statuscode 500 Internal server error
 	 */
 	@POST
 	@Path("/{pushAppID}/aliases")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
-	public Response updateAliases(@PathParam("pushAppID") String pushApplicationID, List<String> aliasData,
+	public Response updateAliases(@PathParam("pushAppID") String pushApplicationID, List<String> aliases,
 			@Context HttpServletRequest request) {
 		final PushApplication pushApp = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request, pushAppService);
 		if (pushApp == null) {
 			return Response.status(Status.UNAUTHORIZED)
-					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+					.header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
 					.entity("Unauthorized Request").build();
 		}
 
 		try {
-			pushAppService.updateAliasesAndInstallations(pushApp, aliasData);
+			pushAppService.updateAliasesAndInstallations(pushApp, aliases);
 			return Response.ok(EmptyJSON.STRING).build();
 		} catch (Exception e) {
 			logger.severe("Cannot update aliases", e);
@@ -94,6 +98,20 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 		}
 	}
 
+	/**
+	 * Retrieve stored documents for push application.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).
+	 *
+	 * @param pushApplicationID	id of {@linkplain PushApplication}
+	 * @param qualifier any document qualifier
+	 * @param id any document id
+	 * @return {@link MultipartFormDataOutput}
+	 *
+	 * @statuscode 200 Successful storage of the aliases list
+     * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
+     * @statuscode 401 The request requires authentication
+     * @statuscode 500 Internal server error
+	 */
 	@GET
 	@Path("/{pushAppID}/document/{qualifier}/{id}")
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -101,25 +119,25 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	@PartType(MediaType.TEXT_PLAIN)
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
 	public Response retrieveDocumentsForPushApp(@PathParam("pushAppID") String pushApplicationID,
-			@PathParam("qualifier") String qualifer, @PathParam("id") String id,
+			@PathParam("qualifier") String qualifier, @PathParam("id") String id,
 			@Context HttpServletRequest request) {
 		final PushApplication pushApp = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request, pushAppService);
 
 		if (pushApp == null) {
 			return Response.status(Status.UNAUTHORIZED)
-					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+					.header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
 					.entity("Unauthorized Request").build();
 		}
 
 		try {
 			MultipartFormDataOutput mdo = new MultipartFormDataOutput();
-			List<String> documents = documentService.getLatestDocumentsForApplication(pushApp, qualifer, id);
+			List<String> documents = documentService.getLatestDocumentsForApplication(pushApp, qualifier, id);
 			for (int i = 0; i < documents.size(); i++) {
 				mdo.addFormData("file" + i, documents.get(i), MediaType.TEXT_PLAIN_TYPE);
 			}
 			return Response.ok(mdo).build();
 		} catch (Exception e) {
-			logger.severe("Cannot retrieve documents for push app", e);
+			logger.severe("Cannot retrieve documents for push application", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
 		}
 	}

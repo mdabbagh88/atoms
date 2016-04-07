@@ -24,7 +24,7 @@
     </parent>
 
     <artifactId>unifiedpush-jaxrs</artifactId>
-    <name>UnifiedPush RESTful Endpoint</name>
+    <name>Atoms RESTful Endpoint</name>
 
     <dependencies>
         <dependency>
