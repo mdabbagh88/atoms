@@ -1,5 +1,7 @@
 {
   "alert": "HELLO!",
+  "priority": "normal",
+  "badge": "2",
   "criteria": {
     "categories": null,
     "variants": null,

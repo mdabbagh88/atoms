@@ -1,5 +1,6 @@
 package org.jboss.aerogear.unifiedpush.service.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -7,12 +8,12 @@ import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import org.jboss.aerogear.unifiedpush.api.DocumentMessage;
-import org.jboss.aerogear.unifiedpush.api.DocumentMessage.DocumentType;
-import org.jboss.aerogear.unifiedpush.api.Installation;
+import org.jboss.aerogear.unifiedpush.api.DocumentMetadata;
+import org.jboss.aerogear.unifiedpush.api.DocumentMetadata.DocumentType;
 import org.jboss.aerogear.unifiedpush.api.PushApplication;
 import org.jboss.aerogear.unifiedpush.api.Variant;
 import org.jboss.aerogear.unifiedpush.dao.DocumentDao;
-import org.jboss.aerogear.unifiedpush.service.ClientInstallationService;
+import org.jboss.aerogear.unifiedpush.document.MessagePayload;
 import org.jboss.aerogear.unifiedpush.service.DocumentService;
 import org.jboss.aerogear.unifiedpush.service.PushApplicationService;
 
@@ -25,67 +26,96 @@ public class DocumentServiceImpl implements DocumentService {
 	@Inject
 	private PushApplicationService pushApplicationService;
 
-	@Inject
-	private ClientInstallationService clientInstallationService;
-
 	@Override
-	public void saveForPushApplication(String deviceToken, Variant variant, String content, String qualifier) {
-		Installation clientInstallation = clientInstallationService.findInstallationForVariantByDeviceToken(
-				variant.getVariantID(), deviceToken);
-		PushApplication pushApplication = pushApplicationService.findByVariantID(variant.getVariantID());
-		documentDao.create(createMessage(content, pushApplication, DocumentType.INSTALLATION,
-				clientInstallation.getAlias(), qualifier));
+	public void saveForPushApplication(PushApplication pushApp, String alias, String content, String qualifier, String id, boolean overwrite) {
+		documentDao.create(createMessage(content, pushApp, DocumentType.INSTALLATION,
+			alias, qualifier, id), overwrite);
 	}
 
 	@Override
 	public List<DocumentMessage> getDocuments(PushApplication pushApplication, DocumentType publisher) {
-		return documentDao.findDocuments(createMessage(pushApplication, publisher, DocumentMessage.NULL_ALIAS,
-				DocumentMessage.NULL_QUALIFIER, false));
+		return documentDao.findDocuments(createMetadata(pushApplication, publisher, DocumentMetadata.NULL_ALIAS,
+				DocumentMetadata.NULL_QUALIFIER, null, false));
 	}
 
 	@Override
-	public String getLatestDocument(Variant variant, DocumentType publisher, String alias, String qualifier) {
+	public String getLatestDocumentForAlias(Variant variant, DocumentType publisher, String alias, String qualifier) {
 		PushApplication pushApplication = pushApplicationService.findByVariantID(variant.getVariantID());
-		DocumentMessage document = documentDao.findLatestDocument(createMessage(pushApplication, publisher, alias,
-				qualifier, true));
+		DocumentMessage document = documentDao.findLatestDocumentForAlias(createMetadata(pushApplication, publisher, alias,
+				qualifier, null, true));
 
 		if (document != null)
 			return document.getContent();
 
 		return null;
 	}
-	
+
 	@Override
-	public void saveForAliases(PushApplication pushApplication, Map<String, String> aliasToDocument, String qualifier) {
+	public List<String> getLatestDocumentsForApplication(
+			PushApplication pushApp, String qualifier, String id) {
+		List<String> contents = new ArrayList<>();
+		final List<DocumentMessage> docs = documentDao.findLatestDocumentsForApplication(createMetadata(pushApp, DocumentType.INSTALLATION,
+				DocumentMetadata.NULL_ALIAS, qualifier, id, true));
+		for (DocumentMessage doc : docs) {
+			contents.add(doc.getContent());
+		}
+		return contents;
+	}
+
+	@Override
+	public void savePayload(PushApplication pushApplication, MessagePayload message, boolean overwrite) {
+		// Store documents according to aliases
+		if (message.getPushMessage() != null && message.getPushMessage().getCriteria() != null
+				&& message.getPushMessage().getCriteria().getAliases() != null) {
+
+			for (String alias : message.getPushMessage().getCriteria().getAliases()) {
+				save(message.getPayload(), pushApplication, DocumentType.APPLICATION, DocumentMetadata.getAlias(alias),
+						DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()), overwrite);
+			}
+		// Store payload without alias
+		} else {
+			save(message.getPayload(), pushApplication, DocumentType.APPLICATION, DocumentMetadata.NULL_ALIAS,
+					DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()), overwrite);
+		}
+	}
+
+	@Override
+	@Deprecated
+	public void saveForAliases(PushApplication pushApplication, Map<String, String> aliasToDocument, String qualifier,
+			String id, boolean overwrite) {
 		for (Map.Entry<String, String> entry : aliasToDocument.entrySet()) {
-			save(entry.getValue(), pushApplication, DocumentType.APPLICATION, entry.getKey(), qualifier);
+			save(entry.getValue(), pushApplication, DocumentType.APPLICATION, entry.getKey(), qualifier, id, overwrite);
 		}
 	}
 
 	private void save(String document, PushApplication pushApplication, DocumentType publisher, String alias,
-			String qualifier) {
-		documentDao.create(createMessage(document, pushApplication, publisher, alias, qualifier));
+			String qualifier, String id, boolean overwrite) {
+		documentDao.create(createMessage(document, pushApplication, publisher, alias, qualifier, id), overwrite);
 	}
 
 	private DocumentMessage createMessage(String content, PushApplication pushApplication, DocumentType publisher,
-			String alias, String qualifier) {
+			String alias, String qualifier, String id) {
 		DocumentMessage message = new DocumentMessage();
 		message.setContent(content);
-		message.setPushApplication(pushApplication);
-		message.setPublisher(publisher);
-		message.setAlias(alias);
-		message.setQualifier(qualifier);
+		DocumentMetadata meta = new DocumentMetadata();
+		meta.setPushApplication(pushApplication);
+		meta.setPublisher(publisher);
+		meta.setAlias(alias);
+		meta.setQualifier(qualifier);
+		meta.setId(id);
+		message.setMetadata(meta);
 		return message;
 	}
 
-	private DocumentMessage createMessage(PushApplication pushApplication, DocumentType publisher, String alias,
-			String qualifier, Boolean latest) {
-		DocumentMessage message = new DocumentMessage();
+	private DocumentMetadata createMetadata(PushApplication pushApplication, DocumentType publisher, String alias,
+			String qualifier, String id, Boolean latest) {
+		DocumentMetadata message = new DocumentMetadata();
 		message.setPushApplication(pushApplication);
 		message.setPublisher(publisher);
 		message.setAlias(alias);
 		message.setQualifier(qualifier);
 		message.setLatest(latest);
+		message.setId(id);
 		return message;
 	}
 

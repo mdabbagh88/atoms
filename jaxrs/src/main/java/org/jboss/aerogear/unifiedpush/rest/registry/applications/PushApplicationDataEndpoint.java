@@ -21,6 +21,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -32,8 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.jboss.aerogear.unifiedpush.api.DocumentMessage;
-import org.jboss.aerogear.unifiedpush.api.DocumentMessage.DocumentType;
+import org.jboss.aerogear.unifiedpush.api.DocumentMetadata;
 import org.jboss.aerogear.unifiedpush.api.PushApplication;
 import org.jboss.aerogear.unifiedpush.document.DocumentDeployRequest;
 import org.jboss.aerogear.unifiedpush.message.InternalUnifiedPushMessage;
@@ -45,6 +45,8 @@ import org.jboss.aerogear.unifiedpush.rest.util.HttpRequestUtil;
 import org.jboss.aerogear.unifiedpush.rest.util.PushAppAuthHelper;
 import org.jboss.aerogear.unifiedpush.service.DocumentService;
 import org.jboss.aerogear.unifiedpush.service.PushApplicationService;
+import org.jboss.resteasy.annotations.providers.multipart.PartType;
+import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataOutput;
 
 import com.qmino.miredot.annotations.ReturnType;
 
@@ -61,30 +63,34 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	private NotificationRouter notificationRouter;
 
 	/**
-	 * Overwrites existing categories and properties of the push application
-	 * with the given data
-	 * 
-	 * @param pushApplicationID
-	 *            id of {@linkplain PushApplication}
-	 * @param categoryData
-	 *            map from category name to its list of property names
+	 * Map aliases to push application.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).
+	 *
+	 * @param pushApplicationID id of {@linkplain PushApplication}
+	 * @param aliases {@link List<String>} of aliases
+	 * @return Empty JSON {}
+	 *
+	 * @statuscode 200 Successful storage of the aliases list
+     * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
+     * @statuscode 401 The request requires authentication
+     * @statuscode 500 Internal server error
 	 */
 	@POST
 	@Path("/{pushAppID}/aliases")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
-	public Response updateAliases(@PathParam("pushAppID") String pushApplicationID, List<String> aliasData,
+	public Response updateAliases(@PathParam("pushAppID") String pushApplicationID, List<String> aliases,
 			@Context HttpServletRequest request) {
 		final PushApplication pushApp = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request, pushAppService);
 		if (pushApp == null) {
 			return Response.status(Status.UNAUTHORIZED)
-					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+					.header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
 					.entity("Unauthorized Request").build();
 		}
 
 		try {
-			pushAppService.updateAliasesAndInstallations(pushApp, aliasData);
+			pushAppService.updateAliasesAndInstallations(pushApp, aliases);
 			return Response.ok(EmptyJSON.STRING).build();
 		} catch (Exception e) {
 			logger.severe("Cannot update aliases", e);
@@ -92,25 +98,46 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 		}
 	}
 
+	/**
+	 * Retrieve documents stored by devices.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).
+	 *
+	 * @param pushApplicationID	id of {@linkplain PushApplication}
+	 * @param qualifier any document qualifier
+	 * @param id any document id
+	 * @return {@link MultipartFormDataOutput}
+	 *
+	 * @statuscode 200 Successful storage of the aliases list
+     * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
+     * @statuscode 401 The request requires authentication
+     * @statuscode 500 Internal server error
+	 */
 	@GET
-	@Path("/{pushAppID}/document")
+	@Path("/{pushAppID}/document/{qualifier}/{id}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces("multipart/form-data")
+	@PartType(MediaType.TEXT_PLAIN)
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
 	public Response retrieveDocumentsForPushApp(@PathParam("pushAppID") String pushApplicationID,
-			@QueryParam("publisher") DocumentType publisher, @Context HttpServletRequest request) {
+			@PathParam("qualifier") String qualifier, @PathParam("id") String id,
+			@Context HttpServletRequest request) {
 		final PushApplication pushApp = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request, pushAppService);
+
 		if (pushApp == null) {
 			return Response.status(Status.UNAUTHORIZED)
-					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+					.header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
 					.entity("Unauthorized Request").build();
 		}
 
 		try {
-			documentService.getDocuments(pushApp, publisher);
-			return Response.ok(EmptyJSON.STRING).build();
+			MultipartFormDataOutput mdo = new MultipartFormDataOutput();
+			List<String> documents = documentService.getLatestDocumentsForApplication(pushApp, qualifier, id);
+			for (int i = 0; i < documents.size(); i++) {
+				mdo.addFormData("file" + i, documents.get(i), MediaType.TEXT_PLAIN_TYPE);
+			}
+			return Response.ok(mdo).build();
 		} catch (Exception e) {
-			logger.severe("Cannot retrieve documents for push app", e);
+			logger.severe("Cannot retrieve documents for push application", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
 		}
 	}
@@ -118,8 +145,8 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	/**
 	 * POST deploys a file and stores it for later retrieval by a client of the
 	 * push application.
-	 *  
-	 * @deprecated This is a private case of @POST /document/{publisher}/{alias}/{qualifier}
+	 *
+	 * @deprecated Use @Path("/sender/payload/")
 	 * @param pushAppId
 	 *            id of
 	 *            {@link org.jboss.aerogear.unifiedpush.api.PushApplication}
@@ -134,10 +161,14 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/{pushAppID}/document")
 	public Response deployDocumentsForAlias(@PathParam("pushAppID") String pushApplicationID,
-			DocumentDeployRequest deployRequest, @Context HttpServletRequest request) {
+			DocumentDeployRequest deployRequest, @Context HttpServletRequest request,
+			@DefaultValue("false") @QueryParam("overwrite") boolean overwrite) {
+
+		logger.warning("method call to @deprecated API /applicationsData/{pushAppID}/document");
 
 		final PushApplication pushApplication = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request,
 				pushAppService);
+
 		if (pushApplication == null) {
 			return Response.status(Status.UNAUTHORIZED)
 					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
@@ -147,7 +178,7 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 		if (!deployRequest.getAliasToDocument().isEmpty()) {
 			try {
 				documentService.saveForAliases(pushApplication, deployRequest.getAliasToDocument(),
-						DocumentMessage.getQualifier(deployRequest.getQualifier()));
+						DocumentMetadata.getQualifier(deployRequest.getQualifier()), null, overwrite);
 
 				final UnifiedPushMessage pushMessage = deployRequest.getPushMessage();
 				if (pushMessage != null) {

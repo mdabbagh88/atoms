@@ -16,10 +16,12 @@
  */
 package org.jboss.aerogear.unifiedpush.api;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.jboss.aerogear.unifiedpush.api.validation.DeviceTokenCheck;
 
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * One installation of a push-enabled client, running on a device (Android/iOS)
@@ -36,7 +38,7 @@ public class Installation extends BaseModel {
     private String osVersion;
     private String alias;
 
-    private Set<Category> categories;
+    private Set<Category> categories = new HashSet<>();
     private String platform;
     @JsonIgnore
     private Variant variant;

@@ -1,10 +1,13 @@
 package org.jboss.aerogear.unifiedpush.api;
 
+/**
+ * Installation verification by OTP.
+ */
 public class InstallationVerificationAttempt {
-	
+
 	private String code;
 	private String deviceToken;
-	
+
 	public String getCode() {
 		return code;
 	}

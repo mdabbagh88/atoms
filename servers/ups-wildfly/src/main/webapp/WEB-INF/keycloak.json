@@ -1,5 +1,5 @@
 {
-  "realm" : "aerogear",
+  "realm" : "atoms",
   "auth-server-url" : "/auth",
   "ssl-required" : "external",
   "resource" : "atoms",

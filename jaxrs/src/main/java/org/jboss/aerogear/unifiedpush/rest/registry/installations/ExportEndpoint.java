@@ -33,7 +33,7 @@ public class ExportEndpoint extends AbstractBaseEndpoint {
 
     /**
      * Endpoint for exporting as JSON file device installations for a given variant.
-     * Only Keycloak authenticated can access it
+     * Only Keycloak authenticated can access it.
      *
      * @param variantId the variant ID
      * @return          list of {@link org.jboss.aerogear.unifiedpush.api.Installation}s

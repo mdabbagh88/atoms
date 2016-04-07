@@ -38,7 +38,7 @@ angular.module('upsConsole')
     };
 
     this.goToAccountManagement = function() {
-      window.location = Auth.keycloak.authServerUrl + '/realms/aerogear/account?referrer=atoms-js';
+      window.location = Auth.keycloak.authServerUrl + '/realms/atoms/account?referrer=atoms-js';
     };
 
     this.havePendingRequests = function() {

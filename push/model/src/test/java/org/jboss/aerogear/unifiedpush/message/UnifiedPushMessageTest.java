@@ -16,13 +16,11 @@
  */
 package org.jboss.aerogear.unifiedpush.message;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.exc.UnrecognizedPropertyException;
-import org.jboss.aerogear.unifiedpush.message.windows.TileType;
-import org.jboss.aerogear.unifiedpush.message.windows.Type;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -35,11 +33,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.jboss.aerogear.unifiedpush.message.windows.TileType;
+import org.jboss.aerogear.unifiedpush.message.windows.Type;
+import org.junit.Test;
+
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
 public class UnifiedPushMessageTest {
 
@@ -86,6 +87,22 @@ public class UnifiedPushMessageTest {
         assertEquals(format, value);
     }
 
+    @Test
+    public void testPriorityMapping() throws IOException {
+        final ObjectMapper mapper = new ObjectMapper();
+        Message message = mapper.readValue(getClass().getResourceAsStream("/message-normal-priority.json"), UnifiedPushMessage.class).getMessage();
+        
+        assertEquals(Priority.NORMAL, message.getPriority());
+    }
+    
+    @Test
+    public void testPriorityEnumHighMapping() throws IOException {
+        final ObjectMapper mapper = new ObjectMapper();        
+        Message message = mapper.readValue(getClass().getResourceAsStream("/message-high-priority.json"), UnifiedPushMessage.class).getMessage();
+        
+        assertEquals(Priority.HIGH, message.getPriority());
+    }
+    
     @Test
     public void createBroadcastMessage() throws IOException {
 
@@ -359,7 +376,7 @@ public class UnifiedPushMessageTest {
         final UnifiedPushMessage unifiedPushMessage = parsePushMessage(container);
         assertEquals("[Jambon, ham]", Arrays.toString(unifiedPushMessage.getMessage().getApns().getLocalizedArguments()));
     }
-	
+
     @Test
     public void testLocalizedTitleKey() throws IOException {
         final Map<String, Object> container = new LinkedHashMap<String, Object>();

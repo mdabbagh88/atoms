@@ -6,6 +6,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -17,97 +18,235 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
 import org.jboss.aerogear.unifiedpush.api.DocumentMessage;
+import org.jboss.aerogear.unifiedpush.api.DocumentMetadata;
+import org.jboss.aerogear.unifiedpush.api.PushApplication;
 import org.jboss.aerogear.unifiedpush.api.Variant;
+import org.jboss.aerogear.unifiedpush.rest.AbstractEndpoint;
 import org.jboss.aerogear.unifiedpush.rest.EmptyJSON;
 import org.jboss.aerogear.unifiedpush.rest.util.ClientAuthHelper;
 import org.jboss.aerogear.unifiedpush.service.ClientInstallationService;
 import org.jboss.aerogear.unifiedpush.service.DocumentService;
 import org.jboss.aerogear.unifiedpush.service.GenericVariantService;
+import org.jboss.aerogear.unifiedpush.service.PushApplicationService;
 import org.jboss.aerogear.unifiedpush.utils.AeroGearLogger;
 
 import com.qmino.miredot.annotations.ReturnType;
 
 @Path("/document")
-public class DocumentEndpoint {	
+public class DocumentEndpoint extends AbstractEndpoint {
     private final AeroGearLogger logger = AeroGearLogger.getInstance(DocumentEndpoint.class);
-	
+
 	@Inject
     private ClientInstallationService clientInstallationService;
     @Inject
     private GenericVariantService genericVariantService;
     @Inject
     private DocumentService documentService;
-    
+    @Inject
+    private PushApplicationService pushApplicationService;
+
+    /**
+     * Cross Origin for Installations
+     *
+     * @param headers   "Origin" header
+     * @return          "Access-Control-Allow-Origin" header for your response
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Methods     POST, DELETE
+     * @responseheader Access-Control-Allow-Headers     accept, origin, content-type, authorization
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader Access-Control-Max-Age           604800
+     *
+     * @statuscode 200 Successful response for your request
+     */
     @OPTIONS
     @ReturnType("java.lang.Void")
-    public Response crossOrigin(
-            @Context HttpHeaders headers,
-            @PathParam("token") String token) {
-
-    	return Response.ok().header("Access-Control-Allow-Origin", headers.getRequestHeader("Origin").get(0)) // return submitted origin
-                .header("Access-Control-Allow-Methods", "POST, GET") // only POST/DELETE are allowed
-                .header("Access-Control-Allow-Headers", "accept, origin, content-type, authorization") // explicit Headers!
-                .header("Access-Control-Allow-Credentials", "true")
-                // indicates how long the results of a preflight request can be cached (in seconds)
-                .header("Access-Control-Max-Age", "604800") // for now, we keep it for seven days
-                .build();
+    public Response crossOriginForInstallations(@Context HttpHeaders headers) {
+        return appendPreflightResponseHeaders(headers, Response.ok()).build();
     }
-	
+
     /**
-     * POST deploys a file and stores it for later retrieval by the push application
-     * of the client.
+     * RESTful API to enable devices to store data
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
+     * @POST data and stores it for later retrieval by the push application.
+     *
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X POST -d {ANY JSON}
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
+     * </pre>
+     *
+     * @HTTP 200 (OK) if store document went through.
+     * @HTTP 400 (Bad Request) deviceToken header not sent.
+     * @HTTP 401 (Unauthorized) The request requires authentication.
+     *
+     * @param entity any JSON body to be stored.
+     * @param alias device alias
+     * @param qualifier any document qualified
+     * @param id any document id (optional)
+     * @return	empty JSON body
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 store document went through.
+     * @statuscode 400 deviceToken header required.
+     * @statuscode 401 The request requires authentication.
      */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/{publisher}/{alias}/{qualifier}")
+	@Path("/{alias}/{qualifier}{id : (/[^/]+?)?}")
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
-	public Response deployDocuments(String entity, @PathParam("publisher") String publisher,
+	public Response newDocument(String entity,
 			@PathParam("alias") String alias, @PathParam("qualifier") String qualifier,
+			@PathParam("id") String id,
 			@Context HttpServletRequest request) {
+
+		// Store new document according to path params.
+		// If document exists a newer version will be stored.
+		return deployDocument(entity, alias, qualifier, id, false, request);
+	}
+
+	 /**
+     * RESTful API to enable devices to store data
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
+     * @PUT data and stores it for later retrieval by the push application. This API will override existing documents.
+     *
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X PUT -d {ANY JSON}
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
+     * </pre>
+     *
+     * @HTTP 200 (OK) if store document went through.
+     * @HTTP 400 (Bad Request) deviceToken header not sent.
+     * @HTTP 401 (Unauthorized) The request requires authentication.
+     *
+     * @param entity any JSON body to be stored.
+     * @param alias device alias
+     * @param qualifier any document qualified
+     * @param id any document id (optional)
+     * @return	empty JSON body
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 store document went through.
+     * @statuscode 400 deviceToken header required.
+     * @statuscode 401 The request requires authentication.
+     */
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/{alias}/{qualifier}{id : (/[^/]+?)?}")
+	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
+	public Response storeDocument(String entity, @PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier, @PathParam("id") String id, @Context HttpServletRequest request) {
+
+		// Store new document according to path params.
+		// If document exists update stored version.
+		return deployDocument(entity, alias, qualifier, id, true, request);
+	}
+
+	private Response deployDocument(String entity, String alias, String qualifier, String id, boolean overwrite,
+			HttpServletRequest request) {
 
 		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
 				clientInstallationService, request);
+
 		if (variant == null) {
-			return getUnauthorizedResponse();
+			return create401Response(request);
+		}
+
+		if (StringUtils.isEmpty(id)) {
+			id = DocumentMessage.NULL_PART;
+		} else {
+			id = id.substring(1); // remove first '/'
 		}
 
 		try {
-			documentService.saveForPushApplication(ClientAuthHelper.getDeviceToken(request), variant, entity,
-					DocumentMessage.getQualifier(qualifier));
+			PushApplication pushApp = pushApplicationService.findByVariantID(variant.getVariantID());
+			documentService.saveForPushApplication(pushApp, alias, entity, DocumentMetadata.getQualifier(qualifier), id,
+					overwrite);
 			return Response.ok(EmptyJSON.STRING).build();
 		} catch (Exception e) {
 			logger.severe("Cannot deploy file for push application", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
 		}
 	}
-	
-	private Response getUnauthorizedResponse() {
-		return Response.status(Status.UNAUTHORIZED)
-	            .header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
-	            .entity("Unauthorized Request").build();
-	}
 
-	/**
-	 * Get latest (last-updated) document according to path parameters </br>
-	 * <b>Examples:</b></br>
-	 * <li>document/application/17327572923/test/latest - alias specific document 
-	 * <li>document/application/null/test/latest - global scope document (for any alias).
-	 */
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
 	@Path("/{publisher}/{alias}/{qualifier}/latest")
-	public Response retrieveDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
+	@Deprecated
+	public Response retrieveTextDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
 			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
 		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
 				clientInstallationService, request);
 		if (variant == null) {
-			return getUnauthorizedResponse();
+			return create401Response(request);
 		}
 
 		try {
-			String document = documentService.getLatestDocument(variant, DocumentMessage.getPublisher(publisher), alias, DocumentMessage.getQualifier(qualifier));
+			String document = documentService.getLatestDocumentForAlias(variant, DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier));
 			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING: document).build();
+		} catch (Exception e) {
+			logger.severe("Cannot retrieve files for alias", e);
+			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	 /**
+     * RESTful API to get device data
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
+     * Get latest (last-updated) document according to path parameters </BR></BR>
+     *
+     * <b>Examples:</b></br>
+	 * <li>document/17327572923/test/json/latest - get alias specific document.
+	 * <li>document/NULL/test/json/latest - global scope document (for any alias).
+	 *
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X GET
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/json/latest"
+     * </pre>
+     *
+     * @HTTP 200 (OK) if document retrieval went through.
+     * @HTTP 400 (Bad Request) deviceToken header not sent.
+     * @HTTP 401 (Unauthorized) The request requires authentication.
+     *
+     *
+     * @param publisher either APPLICATION or INSTALLATION
+     * @param alias device alias
+     * @param qualifier any document qualified
+     * @return	document in json format
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 document retrieval went through.
+     * @statuscode 400 deviceToken header required.
+     * @statuscode 401 The request requires authentication.
+     */
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/{publisher}/{alias}/{qualifier}/json/latest")
+	public Response retrieveJsonDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
+		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
+				clientInstallationService, request);
+		if (variant == null) {
+			return create401Response(request);
+		}
+
+		try {
+			String document = documentService.getLatestDocumentForAlias(variant,
+					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier));
+			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING : document).build();
 		} catch (Exception e) {
 			logger.severe("Cannot retrieve files for alias", e);
 			return Response.status(Status.INTERNAL_SERVER_ERROR).build();

@@ -30,7 +30,7 @@
 
     <login-config>
         <auth-method>KEYCLOAK</auth-method>
-        <realm-name>aerogear</realm-name>
+        <realm-name>atoms</realm-name>
     </login-config>
 
     <security-role>
