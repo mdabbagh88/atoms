@@ -194,7 +194,7 @@ public class InstallationRegistrationEndpoint extends AbstractBaseEndpoint {
      *
      * <pre>
      * curl -u "variantID:secret"
-     *   -v -H "Accept: application/json" -H "Content-type: application/json""
+     *   -v -H "Accept: application/json" -H "Content-type: application/json"
      *   -X PUT
      *   https://SERVER:PORT/context/rest/registry/device/pushMessage/{pushMessageId}
      * </pre>
@@ -383,7 +383,7 @@ public class InstallationRegistrationEndpoint extends AbstractBaseEndpoint {
      * </pre>
      *
      *
-     * @HTTP 200 (OK) for any verification result
+     * @HTTP 200 (OK) if enable went through
      * @HTTP 401 (Unauthorized) The request requires authentication.
      *
      * @param verificationAttempt {@link InstallationVerificationAttempt} containing the verification code.
@@ -393,7 +393,7 @@ public class InstallationRegistrationEndpoint extends AbstractBaseEndpoint {
      * @responseheader Access-Control-Allow-Credentials true
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
-     * @statuscode 200 Successful storage of the device metadata
+     * @statuscode 200 Successful
      * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
      * @statuscode 401 The request requires authentication
      */
@@ -429,27 +429,30 @@ public class InstallationRegistrationEndpoint extends AbstractBaseEndpoint {
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).
      *
      * <pre>
-     * curl -u "variantID:secret" -H "deviceToken:<client device token>"
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X GET
      *   https://SERVER:PORT/context/rest/registry/resendVerificationCode
      * </pre>
-     *
      *
      * @HTTP 200 (OK) if resend went through.
      * @HTTP 400 (Bad Request) deviceToken header not sent.
      * @HTTP 401 (Unauthorized) The request requires authentication.
      *
+     * @RequestHeader	device-token base64 encoded device token
+     * @return	empty JSON body
+     *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
      * @responseheader Access-Control-Allow-Credentials true
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
-     * @statuscode 200 resend went through
+     * @statuscode 200 resend went through.
      * @statuscode 400 deviceToken header required.
-     * @statuscode 401 The request requires authentication
+     * @statuscode 401 The request requires authentication.
      */
     @GET
     @Path("/resendVerificationCode")
     @Produces(MediaType.APPLICATION_JSON)
+    @ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
     public Response resendVerificationCode(@Context HttpServletRequest request) {
 
         final Variant variant = loadVariantWhenAuthorized(request);
@@ -457,42 +460,40 @@ public class InstallationRegistrationEndpoint extends AbstractBaseEndpoint {
             return create401Response(request);
         }
 
-        // TODO: use ClientAuthHelper
-        String basicDeviceToken = request.getHeader("device-token");
-		if (basicDeviceToken == null) {
+        String deviceToken = ClientAuthHelper.getDeviceToken(request);
+		if (deviceToken == null) {
 			return appendAllowOriginHeader(Response.status(Status.BAD_REQUEST)
 					.entity("deviceToken header required"), request);
 		}
 
-        verificationService.retryDeviceVerification(HttpBasicHelper.decodeBase64(basicDeviceToken), variant);
+        verificationService.retryDeviceVerification(deviceToken, variant);
 
         return appendAllowOriginHeader(Response.ok(EmptyJSON.STRING), request);
     }
 
     /**
      * RESTful API for associating a device with an application variant.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
      * This API is used for Multitenancy application support and should be used only with conjunction
-     * with /applicationsData/{pushAppID}/aliases API.
-     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).
+     * with /applicationsData/{pushAppID}/aliases API.</BR>
      *
      * <pre>
-     * curl -u "variantID:secret"
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X GET
      *   https://SERVER:PORT/context/rest/registry/enable
      * </pre>
      *
-     *
      * @HTTP 200 (OK) for any associate result.
      * @HTTP 401 (Unauthorized) The request requires authentication.
      *
-     * @header   device-token   base64 encoded vendor token id.
+     * @RequestHeader	device-token base64 encoded vendor token id.
      * @return   new associated variant outcome {@link Variant}
      *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
      * @responseheader Access-Control-Allow-Credentials true
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
-     * @statuscode 200 Successful storage of the device metadata
+     * @statuscode 200 Successful
      * @statuscode 400 The format of the client request was incorrect (e.g. missing required values)
      * @statuscode 401 The request requires authentication
      */

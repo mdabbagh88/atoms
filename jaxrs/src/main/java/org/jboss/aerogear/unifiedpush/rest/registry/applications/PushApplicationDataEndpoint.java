@@ -99,7 +99,7 @@ public class PushApplicationDataEndpoint extends AbstractBaseEndpoint {
 	}
 
 	/**
-	 * Retrieve stored documents for push application.
+	 * Retrieve documents stored by devices.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).
 	 *
 	 * @param pushApplicationID	id of {@linkplain PushApplication}

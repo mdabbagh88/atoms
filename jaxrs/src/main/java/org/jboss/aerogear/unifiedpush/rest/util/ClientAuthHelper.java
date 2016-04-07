@@ -19,7 +19,7 @@ public class ClientAuthHelper {
 	 */
 	public static Variant loadVariantWhenInstalled(GenericVariantService genericVariantService,
 			ClientInstallationService clientInstallationService, HttpServletRequest request) {
-		String deviceToken = request.getHeader(DEVICE_TOKEN_HEADER);
+		String deviceToken = getDeviceToken(request);
 		if (deviceToken == null) {
 			logger.info("API request missing " + DEVICE_TOKEN_HEADER + " header! URI - > " + request.getRequestURI());
 			return null;
@@ -31,7 +31,7 @@ public class ClientAuthHelper {
 		}
 
 		Installation installation = clientInstallationService.findEnabledInstallationForVariantByDeviceToken(
-				variant.getVariantID(), HttpBasicHelper.decodeBase64(deviceToken));
+				variant.getVariantID(), deviceToken);
 
 		if (installation == null) {
 			logger.info("API request to non-existing / disabled installation " + request.getRequestURI());

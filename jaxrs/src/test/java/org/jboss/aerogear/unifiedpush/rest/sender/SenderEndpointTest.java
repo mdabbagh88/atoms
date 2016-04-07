@@ -70,7 +70,7 @@ public class SenderEndpointTest extends RestEndpointTest {
 			ResteasyWebTarget target = client.target(deploymentUrl.toString() + RESOURCE_PREFIX + "/sender/payload");
 			Response response = target.request().post(Entity.entity(message, MediaType.APPLICATION_JSON_TYPE));
 
-			Assert.assertTrue(response.getStatus() == 200);
+			Assert.assertTrue(response.getStatus() == 202);
 		} catch (Throwable e) {
 			Assert.fail(e.getMessage());
 		}

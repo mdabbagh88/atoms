@@ -73,8 +73,8 @@ public class DocumentEndpointTest extends RestEndpointTest {
 			Assert.assertTrue(response.getStatus() == 200);
 			Assert.assertTrue(newInstallation.isEnabled());
 
-			// Store document @Path("/{publisher}/{alias}/{qualifier}{id}")
-			target = client.target(deploymentUrl.toString() + RESOURCE_PREFIX + "/document/INSTALLATION/"
+			// Store document @Path("/{alias}/{qualifier}{id}")
+			target = client.target(deploymentUrl.toString() + RESOURCE_PREFIX + "/document/"
 					+ newInstallation.getAlias() + "/STATUS");
 
 			// Documents registration is async, lets wait a while

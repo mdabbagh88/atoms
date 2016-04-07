@@ -101,7 +101,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
         final PushApplication pushApplication = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request, pushApplicationService);
         if (pushApplication == null) {
             return Response.status(Status.UNAUTHORIZED)
-                    .header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+                    .header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
                     .entity("Unauthorized Request")
                     .build();
         }
@@ -119,18 +119,26 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
         return Response.status(Status.ACCEPTED).entity(EmptyJSON.STRING).build();
     }
 
-	/**
-	 * @POST accept large payload and stores it for later retrieval by a client
-	 * of the push application. when querying for payload which was stored using
-	 * POST, use ../latest to retrieve most recent snapshot.
-	 *
-	 * @param payloadRequest
-	 *            {@link org.jboss.aerogear.unifiedpush.documentDocumentDeployMessage}
-	 *
-	 * @statuscode 401 if unauthorized for this push application
-	 * @statuscode 500 if request failed
-	 * @statuscode 200 upon success
-	 */
+    /**
+     * RESTful API for sending Push Notifications with large payload.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
+     * Accepts large payload and stores it for later retrieval by a device of the push application.
+     * If {@link UnifiedPushMessage} is passed, then a push notification will also be trigger.</BR></BR>
+     *
+     * Details about the Message Format can be found HERE!
+     *
+     * @HTTP 202 (Accepted) Indicates the Job has been accepted and is being process by the Atoms UnifiedPush Server.
+     * @HTTP 401 (Unauthorized) The request requires authentication.
+     * @RequestHeader aerogear-sender The header to identify the used client. If the header is not present, the standard "user-agent" header is used.
+     *
+     * @param payloadRequest   {@link DocumentDeployMessage} list of {@link MessagePayload}
+     * @return          empty JSON body
+     *
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 202 Indicates the Job has been accepted and is being process by the Atoms UnifiedPush Server
+     * @statuscode 401 The request requires authentication
+     */
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
@@ -142,18 +150,27 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 
 	}
 
-	/**
-	 * @PUT accept large payload and stores it for later retrieval by a client
-	 * of the push application. when querying for payload which was stored using
-	 * @PUT, only one payload snapshot exists.
-	 *
-	 * @param payloadRequest
-	 *            {@link org.jboss.aerogear.unifiedpush.documentDocumentDeployMessage}
-	 *
-	 * @statuscode 401 if unauthorized for this push application
-	 * @statuscode 500 if request failed
-	 * @statuscode 200 upon success
-	 */
+    /**
+     * RESTful API for sending Push Notifications with large payload.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
+     * Accepts large payload and stores it for later retrieval by a device of the push application.
+     * Payload stored using @PUT can be overridden with a following identical call.</BR>
+     * If {@link UnifiedPushMessage} is passed, then a push notification will also be trigger. </BR></BR>
+     *
+     * Details about the Message Format can be found HERE!
+     *
+     * @HTTP 202 (Accepted) Indicates the Job has been accepted and is being process by the Atoms UnifiedPush Server.
+     * @HTTP 401 (Unauthorized) The request requires authentication.
+     * @RequestHeader aerogear-sender The header to identify the used client. If the header is not present, the standard "user-agent" header is used.
+     *
+     * @param payloadRequest   {@link DocumentDeployMessage} to be stored and notify devices.
+     * @return          empty JSON body
+     *
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 202 Indicates the Job has been accepted and is being process by the Atoms UnifiedPush Server
+     * @statuscode 401 The request requires authentication
+     */
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
@@ -167,7 +184,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 	private Response sendLargePayload(PushApplication pushApplication, DocumentDeployMessage payloadRequest, boolean override, @Context HttpServletRequest request) {
 		if (pushApplication == null) {
 			return Response.status(Status.UNAUTHORIZED)
-					.header("WWW-Authenticate", "Basic realm=\"AeroGear UnifiedPush Server\"")
+					.header("WWW-Authenticate", "Basic realm=\"Atoms UnifiedPush Server\"")
 					.entity("Unauthorized Request").build();
 		}
 
@@ -189,7 +206,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
 		}
 
-		return Response.ok(EmptyJSON.STRING).build();
+		return Response.status(Status.ACCEPTED).entity(EmptyJSON.STRING).build();
 	}
 
 	private void push(UnifiedPushMessage pushMessage, PushApplication pushApplication, HttpServletRequest request) {
