@@ -18,7 +18,7 @@
 	</parent>
 
 	<artifactId>unifiedpush-integration-tests</artifactId>
-	<packaging>pom</packaging>
+	<packaging>jar</packaging>
 	<name>UnifiedPush Integration Tests</name>
 
 	<build>
@@ -45,6 +45,14 @@
 						<jMeterTestFile>register-installations.jmx</jMeterTestFile>
 					</testFilesIncluded>
 				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.codehaus.groovy</groupId>
+						<artifactId>groovy-all</artifactId>
+						<version>2.4.6</version>
+					</dependency>
+
+				</dependencies>
 			</plugin>
 		</plugins>
 

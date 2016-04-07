@@ -19,8 +19,10 @@ package org.jboss.aerogear.unifiedpush.message;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -126,6 +128,7 @@ public class UnifiedPushMessage implements Serializable {
         try {
             final HashMap<String, Object> json = new LinkedHashMap<String, Object>();
             json.put("alert", this.message.getAlert());
+            json.put("priority", this.message.getPriority().toString());
             if (this.getMessage().getBadge()>0) {
                 json.put("badge", Integer.toString(this.getMessage().getBadge()));
             }
@@ -185,6 +188,19 @@ public class UnifiedPushMessage implements Serializable {
     public String toString() {
         return "[alert=" + message.getAlert() + ", criteria="
                 + criteria + ", time-to-live=" + config + "]";
+    }
+
+    public static final UnifiedPushMessage withAlias(String alias){
+    	UnifiedPushMessage ups = new UnifiedPushMessage();
+    	Criteria criteria = new Criteria();
+
+    	List<String> aliases = new ArrayList<>();
+    	aliases.add(alias);
+
+    	criteria.setAliases(aliases);
+    	ups.setCriteria(criteria);
+
+    	return ups;
     }
 
 }
