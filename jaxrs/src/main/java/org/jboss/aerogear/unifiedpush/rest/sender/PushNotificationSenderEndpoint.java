@@ -123,7 +123,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
      * RESTful API for sending Push Notifications with large payload.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
      * Accepts large payload and stores it for later retrieval by a device of the push application.
-     * If {@link UnifiedPushMessage} is passed, then a push notification will also be trigger.</BR></BR>
+     * If {@link UnifiedPushMessage.Message.alert} is passed, then a push notification will also be trigger.</BR></BR>
      *
      * Details about the Message Format can be found HERE!
      *
@@ -155,7 +155,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
      * Accepts large payload and stores it for later retrieval by a device of the push application.
      * Payload stored using @PUT can be overridden with a following identical call.</BR>
-     * If {@link UnifiedPushMessage} is passed, then a push notification will also be trigger. </BR></BR>
+     * If {@link @link UnifiedPushMessage.Message.alert} is passed, then a push notification will also be trigger. </BR></BR>
      *
      * Details about the Message Format can be found HERE!
      *
@@ -195,7 +195,8 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 				for (MessagePayload payload : payloadRequest.getPayloads()) {
 					documentService.savePayload(pushApplication, payload, override);
 
-					if (payload.getPushMessage() != null && payload.getPushMessage().getMessage() !=null){
+					// Send push message only if alert exists
+					if (payload.getPushMessage() != null && payload.getPushMessage().getMessage() != null && payload.getPushMessage().getMessage().getAlert() != null){
 						push(payload.getPushMessage(), pushApplication, request);
 					}
 				}
