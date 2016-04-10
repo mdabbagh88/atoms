@@ -205,8 +205,8 @@ public class DocumentEndpoint extends AbstractEndpoint {
      * Get latest (last-updated) document according to path parameters </BR></BR>
      *
      * <b>Examples:</b></br>
-	 * <li>document/17327572923/test/json/latest - get alias specific document.
-	 * <li>document/NULL/test/json/latest - global scope document (for any alias).
+	 * <li>document/APPLICATION/17327572923/test/json/latest - get alias specific document.
+	 * <li>document/APPLICATION/NULL/test/json/latest - global scope document (for any alias).
 	 *
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"

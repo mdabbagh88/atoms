@@ -51,11 +51,11 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public List<String> getLatestDocumentsForApplication(
-			PushApplication pushApp, String qualifier, String id) {
+	public List<String> getLatestDocumentsForApplication(PushApplication pushApp, String alias, String qualifier,
+			String id) {
 		List<String> contents = new ArrayList<>();
 		final List<DocumentMessage> docs = documentDao.findLatestDocumentsForApplication(createMetadata(pushApp, DocumentType.INSTALLATION,
-				DocumentMetadata.NULL_ALIAS, qualifier, id, true));
+				DocumentMetadata.getAlias(alias), DocumentMetadata.getQualifier(qualifier), DocumentMetadata.getId(id), true));
 		for (DocumentMessage doc : docs) {
 			contents.add(doc.getContent());
 		}

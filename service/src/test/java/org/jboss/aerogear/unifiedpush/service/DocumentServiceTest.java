@@ -234,7 +234,7 @@ public class DocumentServiceTest extends AbstractBaseServiceTest {
 		documentService.saveForPushApplication(pushApp, alias1, "doc1", DEFAULT_DEVICE_QUALIFIER, "test_id", true);
 		documentService.saveForPushApplication(pushApp, alias2, "doc2", DEFAULT_DEVICE_QUALIFIER, "test_id", true);
 
-		List<String> docs = documentService.getLatestDocumentsForApplication(pushApp, DEFAULT_DEVICE_QUALIFIER, "test_id");
+		List<String> docs = documentService.getLatestDocumentsForApplication(pushApp,DocumentMetadata.NULL_ALIAS, DEFAULT_DEVICE_QUALIFIER, "test_id");
 		Assert.assertEquals(new HashSet<>(docs), new HashSet<>(Arrays.asList("doc1", "doc2")));
 	}
 }

@@ -23,5 +23,5 @@ public interface DocumentService {
 
 	void savePayload(PushApplication pushApp, MessagePayload payload, boolean overwrite);
 
-	List<String> getLatestDocumentsForApplication(PushApplication pushApp, String qualifer, String id);
+	List<String> getLatestDocumentsForApplication(PushApplication pushApp, String alias, String qualifer, String id);
 }
