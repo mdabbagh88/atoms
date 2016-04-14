@@ -47,7 +47,7 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
     /**
      * Cross Origin for Installations
-     *
+     * </br>
      * @param headers   "Origin" header
      * @return          "Access-Control-Allow-Origin" header for your response
      *
@@ -67,18 +67,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
     /**
      * RESTful API to enable devices to store data
-     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
-     * @POST data and stores it for later retrieval by the push application.
-     *
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * POST data and stores it for later retrieval by the push application.</br>
+     * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X POST -d {ANY JSON}
      *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
      * </pre>
-     *
-     * @HTTP 200 (OK) if store document went through.
-     * @HTTP 400 (Bad Request) deviceToken header not sent.
-     * @HTTP 401 (Unauthorized) The request requires authentication.
      *
      * @param entity any JSON body to be stored.
      * @param alias device alias
@@ -91,7 +87,7 @@ public class DocumentEndpoint extends AbstractEndpoint {
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
      * @statuscode 200 store document went through.
-     * @statuscode 400 deviceToken header required.
+     * @statuscode 400 device-token header required.
      * @statuscode 401 The request requires authentication.
      */
 	@POST
@@ -111,18 +107,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
 	 /**
      * RESTful API to enable devices to store data
-     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
-     * @PUT data and stores it for later retrieval by the push application. This API will override existing documents.
-     *
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * PUT data and stores it for later retrieval by the push application. This API will override existing documents.</br>
+     * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X PUT -d {ANY JSON}
      *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
      * </pre>
-     *
-     * @HTTP 200 (OK) if store document went through.
-     * @HTTP 400 (Bad Request) deviceToken header not sent.
-     * @HTTP 401 (Unauthorized) The request requires authentication.
      *
      * @param entity any JSON body to be stored.
      * @param alias device alias
@@ -135,7 +127,7 @@ public class DocumentEndpoint extends AbstractEndpoint {
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
      * @statuscode 200 store document went through.
-     * @statuscode 400 deviceToken header required.
+     * @statuscode 400 device-token header required.
      * @statuscode 401 The request requires authentication.
      */
 	@PUT
@@ -169,8 +161,8 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
 		try {
 			PushApplication pushApp = pushApplicationService.findByVariantID(variant.getVariantID());
-			documentService.saveForPushApplication(pushApp, alias, entity, DocumentMetadata.getQualifier(qualifier), id,
-					overwrite);
+			documentService.saveForPushApplication(pushApp, alias, entity,
+					DocumentMetadata.getQualifier(qualifier), DocumentMetadata.getId(id), overwrite);
 			return Response.ok(EmptyJSON.STRING).build();
 		} catch (Exception e) {
 			logger.severe("Cannot deploy file for push application", e);
@@ -191,7 +183,9 @@ public class DocumentEndpoint extends AbstractEndpoint {
 		}
 
 		try {
-			String document = documentService.getLatestDocumentForAlias(variant, DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier));
+			String document = documentService.getLatestDocumentForAlias(variant,
+					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier),
+					DocumentMetadata.NULL_ID);
 			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING: document).build();
 		} catch (Exception e) {
 			logger.severe("Cannot retrieve files for alias", e);
@@ -201,27 +195,25 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
 	 /**
      * RESTful API to get device data
-     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</BR>
-     * Get latest (last-updated) document according to path parameters </BR></BR>
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * Get latest (last-updated) document according to path parameters.</br>
      *
+     * </br>
      * <b>Examples:</b></br>
-	 * <li>document/APPLICATION/17327572923/test/json/latest - get alias specific document.
-	 * <li>document/APPLICATION/NULL/test/json/latest - global scope document (for any alias).
-	 *
+	 * <li>/document/APPLICATION/17327572923/test/1/latest - get alias specific document.</li>
+	 * <li>/document/APPLICATION/NULL/test/latest - global scope document (for any alias).</li>
+	 * <li>/document/APPLICATION/NULL/test/latest - global scope document (for any alias).</li>
+	 * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X GET
      *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/json/latest"
      * </pre>
      *
-     * @HTTP 200 (OK) if document retrieval went through.
-     * @HTTP 400 (Bad Request) deviceToken header not sent.
-     * @HTTP 401 (Unauthorized) The request requires authentication.
-     *
-     *
      * @param publisher either APPLICATION or INSTALLATION
-     * @param alias device alias
-     * @param qualifier any document qualified
+     * @param alias device alias ("null" value if missing)
+     * @param qualifier any document qualified ("null" value if missing)
+     * @param id any document id ("null" value if missing)
      * @return	document in json format
      *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
@@ -229,14 +221,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
      * @statuscode 200 document retrieval went through.
-     * @statuscode 400 deviceToken header required.
+     * @statuscode 400 device-token header not sent.
      * @statuscode 401 The request requires authentication.
      */
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/{publisher}/{alias}/{qualifier}/json/latest")
+	@Path("/{publisher}/{alias}/{qualifier}/{id}/latest")
 	public Response retrieveJsonDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
-			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
+			@PathParam("qualifier") String qualifier, @PathParam("id") String id, @Context HttpServletRequest request) {
 		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
 				clientInstallationService, request);
 		if (variant == null) {
@@ -245,7 +237,8 @@ public class DocumentEndpoint extends AbstractEndpoint {
 
 		try {
 			String document = documentService.getLatestDocumentForAlias(variant,
-					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier));
+					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier),
+					DocumentMetadata.getId(id));
 			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING : document).build();
 		} catch (Exception e) {
 			logger.severe("Cannot retrieve files for alias", e);

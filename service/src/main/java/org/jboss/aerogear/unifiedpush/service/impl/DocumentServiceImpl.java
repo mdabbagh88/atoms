@@ -27,9 +27,9 @@ public class DocumentServiceImpl implements DocumentService {
 	private PushApplicationService pushApplicationService;
 
 	@Override
-	public void saveForPushApplication(PushApplication pushApp, String alias, String content, String qualifier, String id, boolean overwrite) {
-		documentDao.create(createMessage(content, pushApp, DocumentType.INSTALLATION,
-			alias, qualifier, id), overwrite);
+	public void saveForPushApplication(PushApplication pushApp, String alias, String content, String qualifier,
+			String id, boolean overwrite) {
+		documentDao.create(createMessage(content, pushApp, DocumentType.INSTALLATION, alias, qualifier, id), overwrite);
 	}
 
 	@Override
@@ -39,10 +39,11 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public String getLatestDocumentForAlias(Variant variant, DocumentType publisher, String alias, String qualifier) {
+	public String getLatestDocumentForAlias(Variant variant, DocumentType publisher, String alias, String qualifier,
+			String id) {
 		PushApplication pushApplication = pushApplicationService.findByVariantID(variant.getVariantID());
-		DocumentMessage document = documentDao.findLatestDocumentForAlias(createMetadata(pushApplication, publisher, alias,
-				qualifier, null, true));
+		DocumentMessage document = documentDao
+				.findLatestDocumentForAlias(createMetadata(pushApplication, publisher, alias, qualifier, id, true));
 
 		if (document != null)
 			return document.getContent();
@@ -70,12 +71,14 @@ public class DocumentServiceImpl implements DocumentService {
 
 			for (String alias : message.getPushMessage().getCriteria().getAliases()) {
 				save(message.getPayload(), pushApplication, DocumentType.APPLICATION, DocumentMetadata.getAlias(alias),
-						DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()), overwrite);
+						DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()),
+						overwrite);
 			}
 		// Store payload without alias
 		} else {
 			save(message.getPayload(), pushApplication, DocumentType.APPLICATION, DocumentMetadata.NULL_ALIAS,
-					DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()), overwrite);
+					DocumentMetadata.getQualifier(message.getQualifier()), DocumentMetadata.getId(message.getId()),
+					overwrite);
 		}
 	}
 

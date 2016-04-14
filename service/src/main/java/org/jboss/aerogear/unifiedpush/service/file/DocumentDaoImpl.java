@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
 import org.jboss.aerogear.unifiedpush.api.DocumentMessage;
@@ -25,6 +27,7 @@ import org.jboss.aerogear.unifiedpush.dao.DocumentDao;
 import org.jboss.aerogear.unifiedpush.service.Configuration;
 
 @Stateless
+@TransactionAttribute(TransactionAttributeType.SUPPORTS)
 public class DocumentDaoImpl implements DocumentDao {
 	private static final Logger logger = Logger.getLogger(DocumentDao.class.getName());
 
@@ -39,8 +42,8 @@ public class DocumentDaoImpl implements DocumentDao {
 	@Override
 	public void create(DocumentMessage message, boolean overwrite) {
 		Path directoryPath = getDocumentPath(message.getMetadata());
-		fileManager.save(Paths.get(directoryPath.toString(), getDocumentFileName(message.getMetadata(), overwrite)), message.getContent()
-				.getBytes(StandardCharsets.UTF_8));
+		fileManager.save(Paths.get(directoryPath.toString(), getDocumentFileName(message.getMetadata(), overwrite)),
+				message.getContent().getBytes(StandardCharsets.UTF_8));
 	}
 
 	@Override
@@ -135,9 +138,8 @@ public class DocumentDaoImpl implements DocumentDao {
 						return false;
 					}
 					String[] parts = pathname.getName().split(DOCUMENT_TOKEN);
-					String id = parts.length < 6 ? NULL_PART : parts[5];
-					if (filter != null
-							&& !filter.accept(parts[0], DocumentType.valueOf(parts[1]), parts[2], parts[3],
+					String id = parts.length < 6 ? DocumentMetadata.NULL_ID : parts[5];
+					if (filter != null && !filter.accept(parts[0], DocumentType.valueOf(parts[1]), parts[2], parts[3],
 									parts[4], id)) {
 						return false;
 					}
@@ -157,8 +159,8 @@ public class DocumentDaoImpl implements DocumentDao {
 		for (File file : files) {
 			DocumentMetadata docMeta = new DocumentMetadata(metadata);
 			docMeta.setTimestamp(file.lastModified());
-			DocumentMessage document = new DocumentMessage(new String(fileManager.read(file.toPath()),
-					StandardCharsets.UTF_8), docMeta);
+			DocumentMessage document = new DocumentMessage(
+					new String(fileManager.read(file.toPath()), StandardCharsets.UTF_8), docMeta);
 			documents.add(document);
 		}
 
@@ -167,9 +169,10 @@ public class DocumentDaoImpl implements DocumentDao {
 
 	private Path getDocumentPath(DocumentMetadata message) {
 		// Application publisher allowed to create global alias documents.
-		if (message.getPublisher() == DocumentType.APPLICATION && message.getAlias().equalsIgnoreCase(DocumentMetadata.NULL_ALIAS))
-			return getFullDirectoryPath(Paths.get(message.getPushApplication().getPushApplicationID(),
-					message.getPublisher().name()));
+		if (message.getPublisher() == DocumentType.APPLICATION
+				&& message.getAlias().equalsIgnoreCase(DocumentMetadata.NULL_ALIAS))
+			return getFullDirectoryPath(
+					Paths.get(message.getPushApplication().getPushApplicationID(), message.getPublisher().name()));
 
 		return getFullDirectoryPath(Paths.get(message.getPushApplication().getPushApplicationID(),
 				message.getPublisher().name(), message.getAlias()));
@@ -205,15 +208,18 @@ public class DocumentDaoImpl implements DocumentDao {
 		}
 
 		@Override
-		public boolean accept(String pushApp, DocumentType type,
-				String alias, String qualifier, String time, String id) {
-			if (!documentMetadata.getAlias().equalsIgnoreCase(DocumentMetadata.NULL_ALIAS) &&
-					!documentMetadata.getAlias().equals(alias)) return false;
-			if (documentMetadata.getPushApplication() != null && !documentMetadata.getPushApplication().getPushApplicationID().equals(pushApp)) return false;
+		public boolean accept(String pushApp, DocumentType type, String alias, String qualifier, String time,
+				String id) {
+			if (!documentMetadata.getAlias().equalsIgnoreCase(DocumentMetadata.NULL_ALIAS)
+					&& !documentMetadata.getAlias().equals(alias))
+				return false;
+			if (documentMetadata.getPushApplication() != null
+					&& !documentMetadata.getPushApplication().getPushApplicationID().equals(pushApp))
+				return false;
 
 			return documentMetadata.getPublisher() == type
 					&& qualifier.equals(getFileNamePart(documentMetadata.getQualifier()))
-					&& (id.equalsIgnoreCase(NULL_PART) || id.equals(getFileNamePart(documentMetadata.getId())));
+					&& id.equals(getFileNamePart(documentMetadata.getId()));
 		}
 	}
 }
