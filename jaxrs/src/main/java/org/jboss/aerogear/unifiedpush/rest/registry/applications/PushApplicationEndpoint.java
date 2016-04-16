@@ -67,7 +67,7 @@ public class PushApplicationEndpoint extends AbstractBaseEndpoint {
      * The Endpoint is protected using keycloak <code>OAuth 2.0</code>.
      *
      * <pre>
-     * curl -u "variantID:secret"
+     * curl -u "bearer:keycloak access_token"
      *   -v -H "Accept: application/json" -H "Content-type: application/json"
      *   -X POST
      *   -d '{
