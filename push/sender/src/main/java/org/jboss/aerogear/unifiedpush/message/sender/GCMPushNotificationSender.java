@@ -16,16 +16,12 @@
  */
 package org.jboss.aerogear.unifiedpush.message.sender;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.inject.Inject;
-
+import com.google.android.gcm.server.Constants;
+import com.google.android.gcm.server.Message;
+import com.google.android.gcm.server.Message.Builder;
+import com.google.android.gcm.server.MulticastResult;
+import com.google.android.gcm.server.Result;
+import com.google.android.gcm.server.Sender;
 import org.jboss.aerogear.unifiedpush.api.AndroidVariant;
 import org.jboss.aerogear.unifiedpush.api.Installation;
 import org.jboss.aerogear.unifiedpush.api.Variant;
@@ -36,12 +32,14 @@ import org.jboss.aerogear.unifiedpush.message.UnifiedPushMessage;
 import org.jboss.aerogear.unifiedpush.service.ClientInstallationService;
 import org.jboss.aerogear.unifiedpush.utils.AeroGearLogger;
 
-import com.google.android.gcm.server.Constants;
-import com.google.android.gcm.server.Message;
-import com.google.android.gcm.server.Message.Builder;
-import com.google.android.gcm.server.MulticastResult;
-import com.google.android.gcm.server.Result;
-import com.google.android.gcm.server.Sender;
+import javax.inject.Inject;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @SenderType(VariantType.ANDROID)
 public class GCMPushNotificationSender implements PushNotificationSender {
@@ -51,7 +49,8 @@ public class GCMPushNotificationSender implements PushNotificationSender {
     private static final Set<String> GCM_ERROR_CODES =
             new HashSet<String>(Arrays.asList(
                     Constants.ERROR_INVALID_REGISTRATION,  // Bad registration_id.
-                    Constants.ERROR_NOT_REGISTERED)        // The user has uninstalled the application or turned off notifications.
+                    Constants.ERROR_NOT_REGISTERED,        // The user has uninstalled the application or turned off notifications.
+                    Constants.ERROR_MISMATCH_SENDER_ID)    // incorrect token, from a different project/sender ID
             );
 
     @Inject
@@ -63,6 +62,7 @@ public class GCMPushNotificationSender implements PushNotificationSender {
      * Sends GCM notifications ({@link UnifiedPushMessage}) to all devices, that are represented by
      * the {@link List} of tokens for the given {@link AndroidVariant}.
      */
+    @Override
     public void sendPushMessage(Variant variant, Collection<String> tokens, UnifiedPushMessage pushMessage, String pushMessageInformationId, NotificationSenderCallback callback) {
 
         // no need to send empty list
@@ -70,7 +70,7 @@ public class GCMPushNotificationSender implements PushNotificationSender {
             return;
         }
 
-        final List<String>  registrationIDs = new ArrayList<String>(tokens);
+        final List<String> pushTargets = new ArrayList<String>(tokens);
         final AndroidVariant androidVariant = (AndroidVariant) variant;
 
         // payload builder:
@@ -81,15 +81,17 @@ public class GCMPushNotificationSender implements PushNotificationSender {
         gcmBuilder.addData("alert", message.getAlert());
         gcmBuilder.addData("sound", message.getSound());
         gcmBuilder.addData("badge", "" + message.getBadge());
+
         /*
         The Message defaults to a Normal priority.  High priority is used
         by GCM to wake up devices in Doze mode as well as apps in AppStandby
         mode.  This has no effect on devices older than Android 6.0
         */
-        gcmBuilder.priority(message.getPriority() ==     Priority.HIGH ?
-                                                         Message.Priority.HIGH :
-                                                         Message.Priority.NORMAL
-                           );
+        gcmBuilder.priority(
+                message.getPriority() ==  Priority.HIGH ?
+                        Message.Priority.HIGH :
+                        Message.Priority.NORMAL
+        );
 
         // if present, apply the time-to-live metadata:
         int ttl = pushMessage.getConfig().getTimeToLive();
@@ -116,30 +118,43 @@ public class GCMPushNotificationSender implements PushNotificationSender {
             final Sender sender = new Sender(androidVariant.getGoogleKey());
 
             // send out a message to a batch of devices...
-            processGCM(androidVariant, registrationIDs, gcmMessage, sender);
+            processGCM(androidVariant, pushTargets, gcmMessage, sender);
 
             logger.fine("Message batch to GCM has been submitted");
             callback.onSuccess();
 
         } catch (Exception e) {
             // GCM exceptions:
-            logger.severe("Error sending payload to GCM server");
-            callback.onError("Error sending payload to GCM server");
+            callback.onError(String.format("Error sending payload to GCM server: %s", e.getMessage()));
         }
     }
 
     /**
-     * Process the HTTP POST to the GCM infrastructor for the given list of registrationIDs.     *
+     * Process the HTTP POST to the GCM infrastructor for the given list of registrationIDs.
      */
-    private void processGCM(AndroidVariant androidVariant, List<String> registrationIDs, Message gcmMessage, Sender sender) throws IOException {
+    private void processGCM(AndroidVariant androidVariant, List<String> pushTargets, Message gcmMessage, Sender sender) throws IOException {
 
-        logger.info(String.format("Sent push notification to GCM Server for %d registrationIDs",registrationIDs.size()));
 
-        MulticastResult multicastResult = sender.send(gcmMessage, registrationIDs, 0);
+        // push targets can be registration IDs OR topics (starting /topic/), but they can't be mixed.
+        if (pushTargets.get(0).startsWith(Constants.TOPIC_PREFIX)) {
 
-        // after sending, let's identify the inactive/invalid registrationIDs and trigger their deletion:
-        cleanupInvalidRegistrationIDsForVariant(androidVariant.getVariantID(), multicastResult, registrationIDs);
+            // perform the topic delivery
 
+            for (String topic : pushTargets) {
+                logger.info(String.format("Sent push notification to GCM topic: %s", topic));
+                Result result = sender.sendNoRetry(gcmMessage, topic);
+
+                logger.finest("Response from GCM topic request: " + result);
+            }
+        } else {
+            logger.info(String.format("Sent push notification to GCM Server for %d registrationIDs", pushTargets.size()));
+            MulticastResult multicastResult = sender.sendNoRetry(gcmMessage, pushTargets);
+
+            logger.finest("Response from GCM request: " + multicastResult);
+
+            // after sending, let's identify the inactive/invalid registrationIDs and trigger their deletion:
+            cleanupInvalidRegistrationIDsForVariant(androidVariant.getVariantID(), multicastResult, pushTargets);
+        }
     }
 
     /**
@@ -210,7 +225,7 @@ public class GCMPushNotificationSender implements PushNotificationSender {
                     // Now use the INDEX of the _that_ result object, and look
                     // for the matching registrationID inside of the List that contains
                     // _all_ the used registration IDs and store it:
-                   inactiveTokens.add(registrationIDs.get(i));
+                    inactiveTokens.add(registrationIDs.get(i));
                 }
             }
         }

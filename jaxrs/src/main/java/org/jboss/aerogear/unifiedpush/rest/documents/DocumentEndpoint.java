@@ -3,6 +3,7 @@ package org.jboss.aerogear.unifiedpush.rest.documents;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.OPTIONS;
 import javax.ws.rs.POST;
@@ -10,6 +11,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -170,29 +172,6 @@ public class DocumentEndpoint extends AbstractEndpoint {
 		}
 	}
 
-	@GET
-	@Produces(MediaType.TEXT_PLAIN)
-	@Path("/{publisher}/{alias}/{qualifier}/latest")
-	@Deprecated
-	public Response retrieveTextDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
-			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
-		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
-				clientInstallationService, request);
-		if (variant == null) {
-			return create401Response(request);
-		}
-
-		try {
-			String document = documentService.getLatestDocumentForAlias(variant,
-					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier),
-					DocumentMetadata.NULL_ID);
-			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING: document).build();
-		} catch (Exception e) {
-			logger.severe("Cannot retrieve files for alias", e);
-			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
-		}
-	}
-
 	 /**
      * RESTful API to get device data
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
@@ -200,14 +179,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
      *
      * </br>
      * <b>Examples:</b></br>
-	 * <li>/document/APPLICATION/17327572923/test/1/latest - get alias specific document.</li>
-	 * <li>/document/APPLICATION/NULL/test/latest - global scope document (for any alias).</li>
-	 * <li>/document/APPLICATION/NULL/test/latest - global scope document (for any alias).</li>
+	 * <li>/document/APPLICATION/17327572923/test - get alias specific document.</li>
+	 * <li>/document/APPLICATION/NULL/test - global scope document (for any alias).</li>
+	 * <li>/document/APPLICATION/NULL/test?snapshot=latest - global scope document (for any alias).</li>
 	 * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X GET
-     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/json/latest"
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}?snapshot=latest"
      * </pre>
      *
      * @param publisher either APPLICATION or INSTALLATION
@@ -226,9 +205,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
      */
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/{publisher}/{alias}/{qualifier}/{id}/latest")
-	public Response retrieveJsonDocument(@PathParam("publisher") String publisher, @PathParam("alias") String alias,
-			@PathParam("qualifier") String qualifier, @PathParam("id") String id, @Context HttpServletRequest request) {
+	@Path("/{publisher}/{alias}/{qualifier}")
+	public Response retrieveJsonDocument(@PathParam("publisher") String publisher,
+			@PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier,
+			@DefaultValue("latest") @QueryParam ("snapshot") String snapshot,
+			@Context HttpServletRequest request) {
+
+		// Authentication
 		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
 				clientInstallationService, request);
 		if (variant == null) {
@@ -236,6 +220,67 @@ public class DocumentEndpoint extends AbstractEndpoint {
 		}
 
 		try {
+			// TODO - support snapshot other then latest
+			String document = documentService.getLatestDocumentForAlias(variant,
+					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier),
+					DocumentMetadata.NULL_ID);
+			return Response.ok(StringUtils.isEmpty(document) ? EmptyJSON.STRING : document).build();
+		} catch (Exception e) {
+			logger.severe("Cannot retrieve files for alias", e);
+			return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	 /**
+     * RESTful API to get device data
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * Get latest (last-updated) document according to path parameters.</br>
+     *
+     * </br>
+     * <b>Examples:</b></br>
+	 * <li>/document/APPLICATION/17327572923/test/1 - get alias specific document.</li>
+	 * <li>/document/APPLICATION/NULL/test/NULL - global scope document (for any alias).</li>
+	 * <li>/document/APPLICATION/NULL/test?snapshot=latest - global scope document (for any alias).</li>
+	 * </br>
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X GET
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}?snapshot=latest"
+     * </pre>
+     *
+     * @param publisher either APPLICATION or INSTALLATION
+     * @param alias device alias ("null" value if missing)
+     * @param qualifier any document qualified ("null" value if missing)
+     * @param id any document id ("null" value if missing)
+     * @return	document in json format
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 document retrieval went through.
+     * @statuscode 400 device-token header not sent.
+     * @statuscode 401 The request requires authentication.
+     */
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/{publisher}/{alias}/{qualifier}/{id}")
+	public Response retrieveJsonDocument(@PathParam("publisher") String publisher,
+			@PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier,
+			@PathParam("id") String id,
+			@DefaultValue("latest") @QueryParam ("snapshot") String snapshot,
+			@Context HttpServletRequest request) {
+
+		// Authentication
+		final Variant variant = ClientAuthHelper.loadVariantWhenInstalled(genericVariantService,
+				clientInstallationService, request);
+		if (variant == null) {
+			return create401Response(request);
+		}
+
+		try {
+			// TODO - support snapshot other then latest
 			String document = documentService.getLatestDocumentForAlias(variant,
 					DocumentMetadata.getPublisher(publisher), alias, DocumentMetadata.getQualifier(qualifier),
 					DocumentMetadata.getId(id));
