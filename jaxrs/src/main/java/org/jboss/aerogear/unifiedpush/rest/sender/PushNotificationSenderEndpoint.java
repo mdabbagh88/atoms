@@ -68,10 +68,10 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
      *   -X POST
      *   -d '{
      *     "message": {
-     *      "alert": "HELLO!",
-     *      "sound": "default",
-     *      "user-data": {
-     *          "key": "value",
+     *       "alert": "HELLO!",
+     *       "sound": "default",
+     *       "user-data": {
+     *         "key": "value",
      *      }
      *   }'
      *   https://SERVER:PORT/CONTEXT/rest/sender
@@ -122,8 +122,33 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
     /**
      * RESTful API for sending Push Notifications with large payload.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
-     * Accepts large payload and stores it for later retrieval by a device of the push application.
-     * If {@link UnifiedPushMessage.Message.alert} is passed, then a push notification will also be trigger.</BR></BR>
+     * Accepts large payload and stores it for later retrieval by a device of the push application.</BR>
+     * Push notification will be trigger only when Message.alert exists.</BR></BR>
+     *
+     * Messages are submitted as flexible JSON maps. Below is a simple example:</BR>
+     * <pre>
+     * curl -u "PushApplicationID:MasterSecret"
+     *   -v -H "Accept: application/json" -H "Content-type: application/json"
+     *   -X POST
+     *   -d '{
+     *     "payloads": [
+     *     {
+     *       "id": "1",
+     *       "pushMessage": {
+	 *         "message": {
+     *           "alert": "HELLO!",
+     *           "sound": "default",
+     *           "user-data": {
+     *             "key": "value"
+     *           }
+     *         }
+     *       },
+     *       "payload": "{SOME JSON CONTENT}",
+     *       "qualifier": "ANY_DOCUMENT_QUALIFIER"
+     *     }]
+     *   }'
+     *   https://SERVER:PORT/CONTEXT/rest/sender/payload
+     * </pre>
      *
      * Details about the Message Format can be found HERE!
      *
@@ -131,7 +156,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
      * @HTTP 401 (Unauthorized) The request requires authentication.
      * @RequestHeader aerogear-sender The header to identify the used client. If the header is not present, the standard "user-agent" header is used.
      *
-     * @param payloadRequest   {@link DocumentDeployMessage} list of {@link MessagePayload}
+     * @param message   message to send
      * @return          empty JSON body
      *
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
@@ -142,20 +167,46 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
+	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
 	@Path("/payload")
-	public Response sendLargePayload(DocumentDeployMessage payloadRequest, @Context HttpServletRequest request) {
+	public Response sendLargePayload(DocumentDeployMessage message, @Context HttpServletRequest request) {
 		final PushApplication pushApplication = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request,
 				pushApplicationService);
-		return sendLargePayload(pushApplication, payloadRequest, false, request);
+		return sendLargePayload(pushApplication, message, false, request);
 
 	}
 
-    /**
+	/**
      * RESTful API for sending Push Notifications with large payload.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>PushApplicationID:masterSecret</code>).</BR>
-     * Accepts large payload and stores it for later retrieval by a device of the push application.
-     * Payload stored using @PUT can be overridden with a following identical call.</BR>
-     * If {@link @link UnifiedPushMessage.Message.alert} is passed, then a push notification will also be trigger. </BR></BR>
+     * Accepts large payload and stores it for later retrieval by a device of the push application.</BR>
+     * Push notification will be trigger only when Message.alert exists.
+     * Payload stored using '@PUT' can be overridden with a following identical call.</BR></BR>
+     *
+     * Messages are submitted as flexible JSON maps. Below is a simple example:
+     * <pre>
+     * curl -u "PushApplicationID:MasterSecret"
+     *   -v -H "Accept: application/json" -H "Content-type: application/json"
+     *   -X PUT
+     *   -d '{
+     *     "payloads": [
+     *     {
+     *       "id": "1",
+     *       "pushMessage": {
+	 *         "message": {
+     *           "alert": "HELLO!",
+     *           "sound": "default",
+     *           "user-data": {
+     *             "key": "value"
+     *           }
+     *         }
+     *       },
+     *       "payload": "{SOME JSON CONTENT}",
+     *       "qualifier": "ANY_DOCUMENT_QUALIFIER"
+     *     }]
+     *   }'
+     *   https://SERVER:PORT/CONTEXT/rest/sender/payload
+     * </pre>
      *
      * Details about the Message Format can be found HERE!
      *
@@ -163,7 +214,7 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
      * @HTTP 401 (Unauthorized) The request requires authentication.
      * @RequestHeader aerogear-sender The header to identify the used client. If the header is not present, the standard "user-agent" header is used.
      *
-     * @param payloadRequest   {@link DocumentDeployMessage} to be stored and notify devices.
+     * @param message   message to send
      * @return          empty JSON body
      *
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
@@ -174,11 +225,12 @@ public class PushNotificationSenderEndpoint extends AbstractEndpoint {
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
+	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
 	@Path("/payload")
-	public Response updateLargePayload(DocumentDeployMessage payloadRequest, @Context HttpServletRequest request) {
+	public Response updateLargePayload(DocumentDeployMessage message, @Context HttpServletRequest request) {
 		final PushApplication pushApplication = PushAppAuthHelper.loadPushApplicationWhenAuthorized(request,
 				pushApplicationService);
-		return sendLargePayload(pushApplication, payloadRequest, true, request);
+		return sendLargePayload(pushApplication, message, true, request);
 	}
 
 	private Response sendLargePayload(PushApplication pushApplication, DocumentDeployMessage payloadRequest, boolean override, @Context HttpServletRequest request) {

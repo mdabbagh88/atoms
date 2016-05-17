@@ -19,7 +19,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang.StringUtils;
-import org.jboss.aerogear.unifiedpush.api.DocumentMessage;
 import org.jboss.aerogear.unifiedpush.api.DocumentMetadata;
 import org.jboss.aerogear.unifiedpush.api.PushApplication;
 import org.jboss.aerogear.unifiedpush.api.Variant;
@@ -68,23 +67,22 @@ public class DocumentEndpoint extends AbstractEndpoint {
     }
 
     /**
-     * RESTful API to enable devices to store data
+     * RESTful API to enable devices to store data.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
      * POST data and stores it for later retrieval by the push application.</br>
      * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X POST -d {ANY JSON}
-     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}"
      * </pre>
      *
      * @param entity any JSON body to be stored.
-     * @param alias device alias
-     * @param qualifier any document qualified
-     * @param id any document id (optional)
-     * @return	empty JSON body
+     * @param alias device alias.
+     * @param qualifier any document qualified.
+     * @return empty JSON body
      *
-     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Origin With host in your "Origin" header
      * @responseheader Access-Control-Allow-Credentials true
      * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
      *
@@ -95,9 +93,47 @@ public class DocumentEndpoint extends AbstractEndpoint {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/{alias}/{qualifier}{id : (/[^/]+?)?}")
+	@Path("/{alias}/{qualifier}")
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
-	public Response newDocument(String entity,
+	public Response newDocument(String entity, @PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
+
+		// Store new document according to path params.
+		// If document exists a newer version will be stored.
+		return deployDocument(entity, alias, qualifier, null, false, request);
+	}
+
+    /**
+     * RESTful API to enable devices to store data.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * POST data and stores it for later retrieval by the push application.</br>
+     * </br>
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X POST -d {ANY JSON}
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}"
+     * </pre>
+     *
+     * @param entity any JSON body to be stored.
+     * @param alias device alias.
+     * @param qualifier any document qualified.
+     * @param id document id.
+     * @return empty JSON body
+     *
+     * @responseheader Access-Control-Allow-Origin With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 store document went through.
+     * @statuscode 400 device-token header required.
+     * @statuscode 401 The request requires authentication.
+     */
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/{alias}/{qualifier}/{id}")
+	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
+	public Response newDocumentWithId(String entity,
 			@PathParam("alias") String alias, @PathParam("qualifier") String qualifier,
 			@PathParam("id") String id,
 			@Context HttpServletRequest request) {
@@ -108,20 +144,20 @@ public class DocumentEndpoint extends AbstractEndpoint {
 	}
 
 	 /**
-     * RESTful API to enable devices to store data
+     * RESTful API to enable devices to store data.
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
-     * PUT data and stores it for later retrieval by the push application. This API will override existing documents.</br>
+     * PUT data and stores it for later retrieval by the push application.
+     * <b>This API will override existing documents.</b></br>
      * </br>
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X PUT -d {ANY JSON}
-     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}{id}"
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}"
      * </pre>
      *
      * @param entity any JSON body to be stored.
-     * @param alias device alias
-     * @param qualifier any document qualified
-     * @param id any document id (optional)
+     * @param alias device alias.
+     * @param qualifier any document qualified.
      * @return	empty JSON body
      *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
@@ -135,9 +171,48 @@ public class DocumentEndpoint extends AbstractEndpoint {
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/{alias}/{qualifier}{id : (/[^/]+?)?}")
+	@Path("/{alias}/{qualifier}")
 	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
 	public Response storeDocument(String entity, @PathParam("alias") String alias,
+			@PathParam("qualifier") String qualifier, @Context HttpServletRequest request) {
+
+		// Store new document according to path params.
+		// If document exists update stored version.
+		return deployDocument(entity, alias, qualifier, null, true, request);
+	}
+
+	 /**
+     * RESTful API to enable devices to store data.
+     * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
+     * PUT data and stores it for later retrieval by the push application.
+     * <b>This API will override existing documents.</b></br>
+     * </br>
+     * <pre>
+     * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
+     *   -v -X PUT -d {ANY JSON}
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}"
+     * </pre>
+     *
+     * @param entity any JSON body to be stored.
+     * @param alias device alias.
+     * @param qualifier any document qualified.
+     * @param id any document id.
+     * @return empty JSON body
+     *
+     * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
+     * @responseheader Access-Control-Allow-Credentials true
+     * @responseheader WWW-Authenticate Basic realm="Atoms UnifiedPush Server" (only for 401 response)
+     *
+     * @statuscode 200 store document went through.
+     * @statuscode 400 device-token header required.
+     * @statuscode 401 The request requires authentication.
+     */
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@Path("/{alias}/{qualifier}/{id}")
+	@ReturnType("org.jboss.aerogear.unifiedpush.rest.EmptyJSON")
+	public Response storeDocumentWithId(String entity, @PathParam("alias") String alias,
 			@PathParam("qualifier") String qualifier, @PathParam("id") String id, @Context HttpServletRequest request) {
 
 		// Store new document according to path params.
@@ -155,12 +230,6 @@ public class DocumentEndpoint extends AbstractEndpoint {
 			return create401Response(request);
 		}
 
-		if (StringUtils.isEmpty(id)) {
-			id = DocumentMessage.NULL_PART;
-		} else {
-			id = id.substring(1); // remove first '/'
-		}
-
 		try {
 			PushApplication pushApp = pushApplicationService.findByVariantID(variant.getVariantID());
 			documentService.saveForPushApplication(pushApp, alias, entity,
@@ -173,7 +242,7 @@ public class DocumentEndpoint extends AbstractEndpoint {
 	}
 
 	 /**
-     * RESTful API to get device data
+     * RESTful API to get device data.</br>
      * The Endpoint is protected using <code>HTTP Basic</code> (credentials <code>VariantID:secret</code>).</br>
      * Get latest (last-updated) document according to path parameters.</br>
      *
@@ -186,14 +255,14 @@ public class DocumentEndpoint extends AbstractEndpoint {
      * <pre>
      * curl -u "variantID:secret" -H "device-token:base64 encoded device token"
      *   -v -X GET
-     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}?snapshot=latest"
+     *   https://SERVER:PORT/context/rest/{alias}/{qualifier}?snapshot=latest"
      * </pre>
      *
      * @param publisher either APPLICATION or INSTALLATION
      * @param alias device alias ("null" value if missing)
      * @param qualifier any document qualified ("null" value if missing)
-     * @param id any document id ("null" value if missing)
-     * @return	document in json format
+     * @param snapshot snapshot id, return latest copy if missing.
+     * @return document in json format
      *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
      * @responseheader Access-Control-Allow-Credentials true
@@ -248,11 +317,12 @@ public class DocumentEndpoint extends AbstractEndpoint {
      *   https://SERVER:PORT/context/rest/{alias}/{qualifier}/{id}?snapshot=latest"
      * </pre>
      *
-     * @param publisher either APPLICATION or INSTALLATION
-     * @param alias device alias ("null" value if missing)
-     * @param qualifier any document qualified ("null" value if missing)
-     * @param id any document id ("null" value if missing)
-     * @return	document in json format
+     * @param publisher either APPLICATION or INSTALLATION.
+     * @param alias device alias ("null" value if missing).
+     * @param qualifier any document qualified ("null" value if missing).
+     * @param id any document id.
+     * @param snapshot snapshot id, return latest copy if missing.
+     * @return document in json format
      *
      * @responseheader Access-Control-Allow-Origin      With host in your "Origin" header
      * @responseheader Access-Control-Allow-Credentials true
